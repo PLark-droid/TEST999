@@ -1,3 +1,31 @@
-import { handlers } from '@/lib/auth';
+import NextAuth from 'next-auth';
+import GitHub from 'next-auth/providers/github';
 
-export const { GET, POST } = handlers;
+const handler = NextAuth({
+  providers: [
+    GitHub({
+      clientId: process.env.GITHUB_CLIENT_ID!,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          scope: 'read:user repo',
+        },
+      },
+    }),
+  ],
+  callbacks: {
+    async jwt({ token, account }) {
+      if (account) {
+        token.accessToken = account.access_token;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      // @ts-expect-error - Adding accessToken to session
+      session.accessToken = token.accessToken;
+      return session;
+    },
+  },
+});
+
+export { handler as GET, handler as POST };
